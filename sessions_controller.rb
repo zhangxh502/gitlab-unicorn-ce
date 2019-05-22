@@ -8,8 +8,13 @@ class SessionsController < Devise::SessionsController
   include Recaptcha::Verify
 
   skip_before_action :check_two_factor_requirement, only: [:destroy]
-  # replaced with :require_no_authentication_without_flash
-  skip_before_action :require_no_authentication, only: [:new, :create]
+  # Explicitly call protect from forgery before anything else. Otherwise the
+  # CSFR-token might be cleared before authentication is done. This was the case
+  # when LDAP was enabled and the `OmniauthCallbacksController` is loaded
+  #
+  # *Note:* `prepend: true` is the default for rails4, but this will be changed
+  # to `prepend: false` in rails5.
+  protect_from_forgery prepend: true, with: :exception
 
   prepend_before_action :check_initial_setup, only: [:new]
   prepend_before_action :authenticate_with_two_factor,
